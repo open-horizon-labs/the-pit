@@ -1,0 +1,85 @@
+-- Reader-owned helpers over unchanged text. Apply as one transaction.
+begin;
+
+create extension if not exists pg_trgm with schema extensions;
+create index if not exists entries_content_trgm_idx
+  on public.entries using gin (content extensions.gin_trgm_ops);
+
+create or replace function public.pit_search(
+  p_query text, p_limit integer default 5, p_context integer default 500
+)
+returns table (
+  id text, received_at timestamptz, total_characters integer,
+  match_start integer, match_end integer,
+  start_char integer, end_char integer, excerpt text
+)
+language plpgsql stable security invoker set search_path = ''
+as $function$
+declare
+  v_pattern text;
+begin
+  if p_query is null or pg_catalog.char_length(p_query) not between 1 and 1000
+     or p_limit is null or p_limit not between 1 and 20
+     or p_context is null or p_context not between 0 and 2000 then
+    raise exception 'Invalid search parameters' using errcode = '22023';
+  end if;
+  -- PostgreSQL's literal director treats every query character as ordinary text.
+  -- Use the identical pattern/case rules for the indexed predicate and offsets.
+  v_pattern := '***=' || p_query;
+  return query
+  with candidates as materialized (
+    select e.id, e.received_at, e.content
+    from public.entries e
+    where e.content operator(pg_catalog.~*) v_pattern
+    order by e.received_at desc, e.id
+    limit p_limit
+  ), located as materialized (
+    select c.*, pg_catalog.char_length(c.content) as size,
+      pg_catalog.regexp_instr(c.content, v_pattern, 1, 1, 0, 'i') - 1 as first,
+      pg_catalog.regexp_instr(c.content, v_pattern, 1, 1, 1, 'i') - 1 as last
+    from candidates c
+  ), bounded as (
+    select l.*, greatest(0, l.first - p_context) as lo,
+      least(l.size, l.last + p_context) as hi
+    from located l where l.first >= 0 and l.last > l.first
+  )
+  select b.id, b.received_at, b.size, b.first, b.last, b.lo, b.hi,
+    pg_catalog.substr(b.content, b.lo + 1, b.hi - b.lo)
+  from bounded b order by b.received_at desc, b.id;
+end;
+$function$;
+
+create or replace function public.pit_read_range(
+  p_id text, p_start integer default 0, p_end integer default 1000
+)
+returns table (
+  id text, received_at timestamptz, total_characters integer,
+  start_char integer, end_char integer, excerpt text
+)
+language plpgsql stable security invoker set search_path = ''
+as $function$
+begin
+  if p_id is null or p_id !~ '^[a-f0-9]{64}$'
+     or p_start is null or p_end is null or p_start < 0 or p_end < p_start
+     or p_end::bigint - p_start::bigint > 20000 then
+    raise exception 'Invalid range parameters' using errcode = '22023';
+  end if;
+  return query
+  with sized as materialized (
+    select e.id, e.received_at, e.content, pg_catalog.char_length(e.content) as size
+    from public.entries e where e.id = p_id
+  ), bounded as (
+    select s.*, least(p_start, s.size) as lo, least(p_end, s.size) as hi from sized s
+  )
+  select b.id, b.received_at, b.size, b.lo, b.hi,
+    pg_catalog.substr(b.content, b.lo + 1, b.hi - b.lo)
+  from bounded b;
+end;
+$function$;
+
+revoke all on function public.pit_search(text, integer, integer) from public, anon;
+revoke all on function public.pit_read_range(text, integer, integer) from public, anon;
+grant execute on function public.pit_search(text, integer, integer) to authenticated;
+grant execute on function public.pit_read_range(text, integer, integer) to authenticated;
+notify pgrst, 'reload schema';
+commit;

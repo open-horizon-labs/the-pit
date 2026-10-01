@@ -1,0 +1,54 @@
+{
+  "description": "Save completed conversation text to The Pit before local session compaction.",
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "^(manual|auto)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/precompact.py\"",
+            "timeout": 90,
+            "statusMessage": "Saving conversation text to The Pit"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|compact)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/retrieval_context.py\"",
+            "timeout": 5,
+            "statusMessage": "Pit context availability"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^mcp__pit__pit_(search|read_range)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/retrieval_context.py\"",
+            "timeout": 5,
+            "statusMessage": "Keeping Pit retrieval pointers"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__pit__pit_(search|read_range|append)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/metrics/pit_metrics.py\" --hook",
+            "timeout": 2
+          }
+        ]
+      }
+    ]
+  }
+}

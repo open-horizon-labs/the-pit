@@ -1,0 +1,15 @@
+# Local configuration, credentials and generated artifacts
+.env*
+!.env.example
+*.local
+connection.json
+*.pem
+*.key
+*.log
+.DS_Store
+__pycache__/
+*.py[cod]
+node_modules/
+dist/
+.wrangler/
+.pytest_cache/

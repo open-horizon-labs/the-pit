@@ -1,0 +1,31 @@
+{
+  "name": "the-pit",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/mcp",
+      "/.well-known/*"
+    ]
+  },
+  "routes": [
+    {
+      "pattern": "pit.ohlabs.ai",
+      "custom_domain": true
+    }
+  ],
+  "build": {
+    "command": "npm run build:deploy"
+  },
+  "account_id": "f048f3132be36fa1aaa8611992002b3f",
+  "main": "worker/index.ts",
+  "vars": {
+    "SUPABASE_URL": "https://iunbpyiylsbkscjaisid.supabase.co",
+    "PIT_CLIENT_IDS": "24ac42eb-bd23-4fae-8eb1-540e4cefe213",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_-qM89aueeYwSgKiAt0Yq9w_rNB1sIqC"
+  }
+}

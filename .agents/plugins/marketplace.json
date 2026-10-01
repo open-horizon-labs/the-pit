@@ -1,0 +1,11 @@
+{
+  "name": "the-pit-local",
+  "plugins": [
+    {
+      "name": "the-pit",
+      "source": {"source": "local", "path": "./plugin"},
+      "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+      "category": "Productivity"
+    }
+  ]
+}
