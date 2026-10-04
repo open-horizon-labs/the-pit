@@ -139,7 +139,7 @@ def harvest_file(path, *, source, db, client, summary):
     try:
         with path.open("rb") as stream:
             rows = CompleteLines(stream)
-            rendered, coverage = render_lines(rows, session)
+            rendered, coverage = render_lines(rows, session, include_record_times=True)
             coverage["partial_trailing_record_omitted"] = rows.partial
     except ValueError as exc:
         if "No supported visible text messages" not in str(exc):
@@ -196,7 +196,7 @@ for folder in (home/"sessions",home/"archived_sessions"):
     unresolved="unresolved:"+hashlib.sha256(str(path).encode()).hexdigest()
     print(json.dumps({{"outcome":"unsupported","session":unresolved,"path":str(path)}})); continue
    with path.open("rb") as f:
-    rows=CompleteLines(f); content,coverage=render_lines(rows,session); coverage["partial_trailing_record_omitted"]=rows.partial
+    rows=CompleteLines(f); content,coverage=render_lines(rows,session,include_record_times=True); coverage["partial_trailing_record_omitted"]=rows.partial
    print(json.dumps({{"path":str(path),"session":session,"size":stat.st_size,"mtime_ns":stat.st_mtime_ns,"started":started,"content":content,"rendered_hash":hashlib.sha256(content.encode()).hexdigest(),"coverage":coverage}},ensure_ascii=False))
   except ValueError as exc:
    outcome="empty" if "No supported visible text messages" in str(exc) else "error"

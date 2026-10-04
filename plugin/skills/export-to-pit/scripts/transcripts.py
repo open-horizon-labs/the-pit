@@ -9,9 +9,38 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from datetime import datetime, timezone
 
 
 _ASSISTANT_PHASES = {"commentary", "final_answer"}
+_RECORD_TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$")
+
+
+def _record_timestamp(record):
+    """Return a validated UTC instant and label, or why the source time is absent."""
+    if "timestamp" not in record:
+        return (None, None), "missing"
+    value = record["timestamp"]
+    if not isinstance(value, str):
+        return (None, None), "invalid"
+    if not _RECORD_TIMESTAMP.fullmatch(value):
+        return (None, None), "invalid"
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith("Z") else value)
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            return (None, None), "invalid"
+        instant = parsed.astimezone(timezone.utc)
+    except (ValueError, OverflowError):
+        return (None, None), "invalid"
+    return (instant, instant.isoformat(timespec="auto").replace("+00:00", "Z")), "valid"
+
+
+def _merge_record_time(message, record_time):
+    instant, label = record_time
+    if instant is not None and (message["record_time_instant"] is None or instant < message["record_time_instant"]):
+        message["record_time_instant"] = instant
+        message["record_time"] = label
 
 
 def _message_text(parts, allowed_types):
@@ -29,8 +58,13 @@ def _message_text(parts, allowed_types):
     return "\n".join(texts), None, omitted
 
 
-def render_lines(lines, thread_id: str, *, partial_trailing_record_omitted=False):
-    """Render a stream of complete JSONL records for exactly *thread_id*."""
+def render_lines(lines, thread_id: str, *, partial_trailing_record_omitted=False, include_record_times=False):
+    """Render visible records for *thread_id*; optional times label when the rollout recorded each message.
+
+    Deduplicated event/response representations use the earliest valid source
+    record timestamp by UTC instant. Missing or invalid times are ignored; if
+    neither representation has a valid time, the message is rendered without one.
+    """
 
     session_id = None
     linked_sessions = set()
@@ -41,6 +75,9 @@ def render_lines(lines, thread_id: str, *, partial_trailing_record_omitted=False
     unmatched = {"event": [], "response": []}
     unsupported = {}
     excluded_record_types = {}
+    record_time_counts = {"source_records_with_valid_timestamp": 0,
+                          "source_records_missing_timestamp": 0,
+                          "source_records_with_invalid_timestamp": 0}
 
     def omit(reason):
         unsupported[reason] = unsupported.get(reason, 0) + 1
@@ -130,6 +167,15 @@ def render_lines(lines, thread_id: str, *, partial_trailing_record_omitted=False
         if candidate is None:
             continue
         identity, role, text, representation = candidate
+        record_time = (None, None)
+        if include_record_times:
+            record_time, time_status = _record_timestamp(record)
+            count_key = {
+                "valid": "source_records_with_valid_timestamp",
+                "missing": "source_records_missing_timestamp",
+                "invalid": "source_records_with_invalid_timestamp",
+            }[time_status]
+            record_time_counts[count_key] += 1
         message = (role, text)
         has_identity = isinstance(identity, str) and bool(identity)
         candidate_key = (role, text)
@@ -137,31 +183,45 @@ def render_lines(lines, thread_id: str, *, partial_trailing_record_omitted=False
             run_key = candidate_key
             unmatched = {"event": [], "response": []}
         if has_identity and identity in seen:
-            if seen[identity] != message:
+            prior_message, prior_index = seen[identity]
+            if prior_message != message:
                 raise ValueError("Repeated message identity has different text; export stopped")
+            if include_record_times and prior_index is not None:
+                _merge_record_time(messages[prior_index], record_time)
             continue
-        if has_identity:
-            seen[identity] = message
         opposite = "response" if representation == "event" else "event"
         duplicate_pair = None
-        for index, prior_identity in enumerate(unmatched[opposite]):
+        for index, (prior_identity, _) in enumerate(unmatched[opposite]):
             prior_has_identity = isinstance(prior_identity, str) and bool(prior_identity)
             if not (prior_has_identity and has_identity):
                 duplicate_pair = index
                 break
         if duplicate_pair is None:
-            messages.append(message)
-            unmatched[representation].append(identity if has_identity else None)
+            message_index = len(messages)
+            messages.append({"role": role, "text": text, "record_time": None, "record_time_instant": None})
+            if include_record_times:
+                _merge_record_time(messages[message_index], record_time)
+            unmatched[representation].append((identity if has_identity else None, message_index))
+            if has_identity:
+                seen[identity] = (message, message_index)
         else:
-            unmatched[opposite].pop(duplicate_pair)
+            _, message_index = unmatched[opposite].pop(duplicate_pair)
+            if include_record_times:
+                _merge_record_time(messages[message_index], record_time)
+            if has_identity:
+                seen[identity] = (message, message_index)
 
     if session_id is None:
         raise ValueError("No matching session metadata found")
     if not messages:
         raise ValueError("No supported visible text messages found")
-    content = "\n\n".join(f"{role}:\n{text}" for role, text in messages) + "\n"
+    content = "\n\n".join(
+        (f"Recorded at: {entry['record_time']}\n" if include_record_times and entry["record_time"] else "")
+        + f"{entry['role']}:\n{entry['text']}"
+        for entry in messages
+    ) + "\n"
     encoded = content.encode("utf-8")
-    return content, {
+    coverage = {
         "session_id": session_id,
         "inherited_sessions": sorted(inherited_sessions),
         "messages": len(messages),
@@ -172,6 +232,10 @@ def render_lines(lines, thread_id: str, *, partial_trailing_record_omitted=False
         "unsupported": unsupported,
         "excluded_record_types": excluded_record_types,
     }
+    if include_record_times:
+        record_time_counts["rendered_messages_with_timestamp"] = sum(bool(entry["record_time"]) for entry in messages)
+        coverage["record_time_coverage"] = record_time_counts
+    return content, coverage
 
 
 def render_snapshot(raw: bytes, thread_id: str):
