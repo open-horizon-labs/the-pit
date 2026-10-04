@@ -31,6 +31,10 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(result["structuredContent"]["entries"], [ANCHOR])
         server.call_tool("pit_read_range", {"id": "a"*64, "start": 2, "end": 7}, factory)
         client.read_range.assert_called_once_with("a"*64, 2, 7)
+        client.search_page.return_value = [ANCHOR]
+        server.call_tool("pit_search_page", {"query": "C++%_", "before_received_at": "2026-10-04T12:30:00+00:00",
+                                              "before_id": "a" * 64}, factory)
+        client.search_page.assert_called_once_with("C++%_", 20, 500, "2026-10-04T12:30:00+00:00", "a" * 64)
         client.read.assert_not_called()
         client.append.assert_not_called()
 
@@ -57,6 +61,8 @@ class ReaderTests(unittest.TestCase):
         factory = Mock()
         for name,args in [("append",{}),("pit_search",{"query":"x","limit":True}),
                           ("pit_search",{"query":"x","context":2001}),("pit_search",{"query":"x","sql":"delete"}),
+                          ("pit_search_page",{"query":"x","before_id":"a"*64}),
+                          ("pit_search_page",{"query":"x","before_received_at":None,"before_id":None}),
                           ("pit_read_range",{"id":"a"*64,"start":False})]:
             with self.assertRaises(server.PitError):
                 server.call_tool(name,args,factory)
@@ -79,7 +85,7 @@ class ReaderTests(unittest.TestCase):
                          text=True,capture_output=True,check=True)
         rows=[json.loads(line) for line in p.stdout.splitlines()]
         self.assertEqual(len(rows),2)
-        self.assertEqual([t["name"] for t in rows[1]["result"]["tools"]],["pit_append","pit_search","pit_read_range"])
+        self.assertEqual([t["name"] for t in rows[1]["result"]["tools"]],["pit_append","pit_search","pit_search_page","pit_read_range"])
         self.assertEqual(p.stderr,"")
 
 class ContextTests(unittest.TestCase):

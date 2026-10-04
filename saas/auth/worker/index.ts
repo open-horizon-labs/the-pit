@@ -58,6 +58,15 @@ export function makeHandler(env: Env, token: string) {
    _meta:{securitySchemes:[{type:'oauth2',scopes:[]}]},
    inputSchema:z.object({query:z.string().min(1).max(1000),limit:z.number().int().min(1).max(20).default(5),context:z.number().int().min(0).max(2000).default(500)}),annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
   },async ({query,limit,context})=>run(()=>api('rpc/pit_saas_search',{p_query:query,p_limit:limit,p_context:context})));
+  server.registerTool('pit_search_page',{
+   description:'Continue literal search in receipt-time order. Supply both before_received_at and before_id from the last row of the preceding page, or omit both for the first page. This cursor tracks receipt order, not activity time or a commit-order feed.',
+   _meta:{securitySchemes:[{type:'oauth2',scopes:[]}]},
+   inputSchema:z.object({query:z.string().min(1).max(1000),limit:z.number().int().min(1).max(20).default(20),context:z.number().int().min(0).max(2000).default(500),before_received_at:z.string().datetime({offset:true}).optional(),before_id:z.string().regex(/^[a-f0-9]{64}$/).optional()}),
+   annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
+  },async ({query,limit,context,before_received_at,before_id})=>run(()=>{
+   if((before_received_at===undefined)!==(before_id===undefined))throw new Error('Search cursor requires both fields');
+   return api('rpc/pit_saas_search_page',{p_query:query,p_limit:limit,p_context:context,p_before_received_at:before_received_at??null,p_before_id:before_id??null});
+  }));
   server.registerTool('pit_read_range',{
    description:'Read exact original text using an immutable hash and zero-based Unicode code point range [start,end), at most 20,000 characters per call. Expand useful search matches selectively; do not reload full sessions by default.',
    _meta:{securitySchemes:[{type:'oauth2',scopes:[]}]},

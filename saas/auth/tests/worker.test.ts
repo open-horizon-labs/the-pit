@@ -23,7 +23,19 @@ test('real SDK serves legacy initialize and tool discovery without DB call',asyn
  const call=async(body:unknown)=>handler.fetch(new Request('https://pit.ohlabs.ai/mcp',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify(body)}));
  const decode=async(r:Response)=>{const text=await r.text();return JSON.parse(text.startsWith('event:') ? text.split('\n').find(l=>l.startsWith('data:'))!.slice(5) : text);};
  const init=await call({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'test',version:'1'}}});assert.equal(init.status,200);assert.equal((await decode(init)).result.serverInfo.name,'the-pit');
- const list=await call({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});assert.equal(list.status,200);const tools=(await decode(list)).result.tools;assert.deepEqual(tools.map((t:any)=>t.name).sort(),['pit_append','pit_list','pit_read_range','pit_search']);for(const tool of tools){assert.equal(typeof tool.annotations.destructiveHint,'boolean');assert.equal(typeof tool.annotations.readOnlyHint,'boolean');assert.equal(tool.annotations.openWorldHint,false);}await handler.close();
+ const list=await call({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});assert.equal(list.status,200);const tools=(await decode(list)).result.tools;assert.deepEqual(tools.map((t:any)=>t.name).sort(),['pit_append','pit_list','pit_read_range','pit_search','pit_search_page']);for(const tool of tools){assert.equal(typeof tool.annotations.destructiveHint,'boolean');assert.equal(typeof tool.annotations.readOnlyHint,'boolean');assert.equal(tool.annotations.openWorldHint,false);}await handler.close();
+});
+
+test('generic search page forwards a paired receipt cursor to its dedicated RPC',async()=>{
+ const handler=makeHandler(env,'test-token');const original=globalThis.fetch;const calls:any[]=[];
+ globalThis.fetch=async(input:any,init:any)=>{calls.push({url:String(input),body:JSON.parse(String(init.body))});return new Response('[]',{headers:{'Content-Type':'application/json'}});};
+ const call=async(id:number,arguments_:unknown)=>handler.fetch(new Request('https://pit.ohlabs.ai/mcp',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id,method:'tools/call',params:{name:'pit_search_page',arguments:arguments_}})}));
+ try{
+  const valid=await call(21,{query:'literal phrase',limit:7,context:12,before_received_at:'2026-10-04T12:30:00+00:00',before_id:'a'.repeat(64)});assert.equal(valid.status,200);
+  assert.equal(calls.length,1);assert.ok(calls[0].url.endsWith('/rest/v1/rpc/pit_saas_search_page'));
+  assert.deepEqual(calls[0].body,{p_query:'literal phrase',p_limit:7,p_context:12,p_before_received_at:'2026-10-04T12:30:00+00:00',p_before_id:'a'.repeat(64)});
+  await call(22,{query:'literal phrase',before_id:'a'.repeat(64)});assert.equal(calls.length,1);
+ }finally{globalThis.fetch=original;await handler.close();}
 });
 
 test('per-user throttle rejects before executing tools and fails closed',async()=>{

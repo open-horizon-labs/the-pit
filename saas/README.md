@@ -8,13 +8,13 @@ Existing Intake project `iunbpyiylsbkscjaisid`; website and remote MCP hosted at
 
 `public.pit_oauth_clients` contains public client IDs and enabled flags only. OAuth data access requires an enabled client in this table. Direct signed-in user sessions may access their own rows. Only administrators can change the allowlist. The enabled `public.pit_access_token_hook` sets audience `https://pit.ohlabs.ai/mcp` only for enabled Pit clients; all other token claims remain unchanged. No existing hook or signing key was replaced.
 
-Built-in readers remain replaceable: literal search and Unicode ranges execute in PostgreSQL; hash-ordered listing allows independent scans. Direct authenticated Data API reads are available under the same RLS. Listing is not a commit-ordered follow cursor. No source fields, normalization, semantic chunks or application text-size cap.
+Built-in readers remain replaceable: literal search, receipt-keyset search pages and Unicode ranges execute in PostgreSQL; hash-ordered listing allows independent scans. `pit_search_page` takes both `before_received_at` and `before_id` from the previous page's final row, or neither on the first page. This preserves the existing `pit_search` RPC and tool. The cursor follows receipt-time and hash order; it does not represent activity chronology or commit order. Direct authenticated Data API reads are available under the same RLS. No source fields, normalization, semantic chunks or application text-size cap.
 
 ## Worker
 
 Implementation in `auth/worker/index.ts`, maintained MCP SDK 2.2.0, web-standard HTTP handler and Cloudflare schema validator. Routes:
 
-- `/mcp`: authenticated MCP, tools `pit_append`, `pit_search`, `pit_read_range`, `pit_list`.
+- `/mcp`: authenticated MCP, tools `pit_append`, `pit_search`, `pit_search_page`, `pit_read_range`, `pit_list`.
 - `/.well-known/oauth-protected-resource/mcp` (and root variant): OAuth discovery.
 - Other paths: static account/consent SPA.
 

@@ -1,6 +1,7 @@
 """Private Supabase Auth session and content-only Data API access."""
 
 import argparse
+from datetime import datetime
 import hashlib
 import json
 import os
@@ -125,6 +126,27 @@ class Client:
             raise PitError("Invalid search parameters")
         return self.api("rpc/pit_search", "POST",
                         {"p_query": query, "p_limit": limit, "p_context": context})
+
+    def search_page(self, query, limit=20, context=500, before_received_at=None, before_id=None):
+        if (not isinstance(query, str) or not 1 <= len(query) <= 1000
+                or type(limit) is not int or not 1 <= limit <= 20
+                or type(context) is not int or not 0 <= context <= 2000):
+            raise PitError("Invalid search parameters")
+        if (before_received_at is None) != (before_id is None):
+            raise PitError("Search cursor requires both receipt time and entry ID")
+        if before_received_at is not None:
+            if (not isinstance(before_received_at, str) or len(before_received_at) > 64
+                    or not isinstance(before_id, str) or not re.fullmatch(r"[a-f0-9]{64}", before_id)):
+                raise PitError("Invalid search cursor")
+            try:
+                parsed = datetime.fromisoformat(before_received_at.replace("Z", "+00:00"))
+            except ValueError:
+                raise PitError("Invalid search cursor") from None
+            if parsed.tzinfo is None or parsed.utcoffset() is None:
+                raise PitError("Invalid search cursor")
+        return self.api("rpc/pit_search_page", "POST", {
+            "p_query": query, "p_limit": limit, "p_context": context,
+            "p_before_received_at": before_received_at, "p_before_id": before_id})
 
     def read_range(self, identity, start=0, end=1000):
         if not re.fullmatch(r"[a-f0-9]{64}", identity) or not 0 <= start <= end <= 2147483647 or end - start > 20000:
