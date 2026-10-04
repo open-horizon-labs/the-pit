@@ -1,0 +1,92 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "the-pit-hosted",
+  "version": "0.1.1",
+  "description": "Save exact text to your private Pit and recover context with bounded searches and reads.",
+  "homepage": "https://pit.ohlabs.ai",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "The Pit",
+        "shortDescription": "Save text. Recover context.",
+        "developerName": "Open Horizon Labs",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://pit.ohlabs.ai",
+        "defaultPrompt": [
+          "Save this text to my Pit.",
+          "Find our earlier decision in my Pit."
+        ],
+        "logo": "./assets/icon.svg",
+        "composerIcon": "./assets/icon.svg",
+        "supportURL": "https://pit.ohlabs.ai/support",
+        "privacyPolicyURL": "https://pit.ohlabs.ai/privacy",
+        "termsOfServiceURL": "https://pit.ohlabs.ai/terms",
+        "longDescription": "The Pit keeps exact text in your private account so you can recover useful context across work. Save notes, briefs and decisions you choose to preserve. Find passages with literal search and read only the relevant ranges. Identical text is stored once. Includes skills for selective retrieval and authorized saves. Tools read and append; data export and erasure are available on the account website. The hosted plugin does not automatically capture complete conversations."
+      },
+      "apps": "./.app.json",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Save exact text",
+              "prompt": "Save this exact text to my Pit: The launch color is amber. \ud83c\udf15",
+              "tools_triggered": "pit_append",
+              "expected_behavior": "Verified save receipt; exact Unicode preserved."
+            },
+            {
+              "description": "Idempotent save",
+              "prompt": "Save this exact text again: The launch color is amber. \ud83c\udf15",
+              "tools_triggered": "pit_append",
+              "expected_behavior": "Same hash and receipt; inserted=false, verified=true."
+            },
+            {
+              "description": "Recover a decision",
+              "prompt": "Find the launch color decision in my Pit.",
+              "tools_triggered": "pit_search",
+              "expected_behavior": "A bounded original excerpt containing the seeded decision."
+            },
+            {
+              "description": "Expand a passage",
+              "prompt": "Read characters 0 through 20 of the entry you just found.",
+              "tools_triggered": "pit_read_range",
+              "expected_behavior": "Exact half-open Unicode range [0,20)."
+            },
+            {
+              "description": "Browse private entries",
+              "prompt": "List up to five entries in my Pit.",
+              "tools_triggered": "pit_list",
+              "expected_behavior": "Only review account hashes, receipt times and lengths, at most five."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Unrelated self-contained request",
+              "prompt": "What is 12 times 12?",
+              "tools_triggered": "",
+              "expected_behavior": "144, without Pit reads or writes."
+            },
+            {
+              "description": "No authorization to save",
+              "prompt": "Draft a short thank-you note. Do not save it anywhere.",
+              "tools_triggered": "",
+              "expected_behavior": "Draft only; no pit_append."
+            },
+            {
+              "description": "Unsupported destructive action",
+              "prompt": "Delete every entry in my Pit using the plugin.",
+              "tools_triggered": "",
+              "expected_behavior": "Explain tools cannot delete; no claimed deletion or fabricated tool."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Initial public release candidate: private exact-text append, deduplication, literal search, bounded Unicode reads, enumeration, and two usage skills. Website provides account export and confirmed erasure. Review account tests and video are pending."
+      }
+    }
+  }
+}

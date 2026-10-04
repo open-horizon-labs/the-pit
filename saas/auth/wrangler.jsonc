@@ -19,13 +19,23 @@
     }
   ],
   "build": {
-    "command": "npm run build:deploy"
+    "command": "VITE_PIT_ACCOUNT_ERASURE=enabled npm run build:deploy"
   },
   "account_id": "f048f3132be36fa1aaa8611992002b3f",
   "main": "worker/index.ts",
   "vars": {
     "SUPABASE_URL": "https://iunbpyiylsbkscjaisid.supabase.co",
-    "PIT_CLIENT_IDS": "24ac42eb-bd23-4fae-8eb1-540e4cefe213",
+    "PIT_CLIENT_IDS": "24ac42eb-bd23-4fae-8eb1-540e4cefe213,79c0b4f7-d42d-47f2-9a65-2cfb38f16ab4",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_-qM89aueeYwSgKiAt0Yq9w_rNB1sIqC"
-  }
+  },
+  "ratelimits": [
+    {
+      "name": "PIT_RATE_LIMIT",
+      "namespace_id": "681274319",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ]
 }

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build",
+    "build": "python3 scripts/build-policy-pages.py && tsc --noEmit && vite build",
     "build:deploy": "node scripts/check-config.mjs && npm run build",
     "deploy": "wrangler deploy",
     "test": "tsx --test tests/worker.test.ts"

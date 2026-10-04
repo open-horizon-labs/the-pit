@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPair, SignJWT, createLocalJWKSet, exportJWK} from 'jose';
-import worker, {verifyCaller,makeHandler} from '../worker/index.ts';
-const env={SUPABASE_URL:'https://iunbpyiylsbkscjaisid.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test',PIT_CLIENT_IDS:'trusted',ASSETS:{fetch:async()=>new Response('site')}};
+import worker, {verifyCaller,makeHandler,serveAuthenticated} from '../worker/index.ts';
+const env={SUPABASE_URL:'https://iunbpyiylsbkscjaisid.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test',PIT_CLIENT_IDS:'trusted',PIT_RATE_LIMIT:{limit:async()=>({success:true})},ASSETS:{fetch:async()=>new Response('site')}};
 test('discovery and unauthenticated boundary',async()=>{
  const d=await worker.fetch(new Request('https://pit.ohlabs.ai/.well-known/oauth-protected-resource/mcp'),env);assert.equal((await d.json()).resource,'https://pit.ohlabs.ai/mcp');
  const denied=await worker.fetch(new Request('https://pit.ohlabs.ai/mcp'),env);assert.equal(denied.status,401);assert.match(denied.headers.get('WWW-Authenticate')!,/resource_metadata/);
@@ -23,5 +23,14 @@ test('real SDK serves legacy initialize and tool discovery without DB call',asyn
  const call=async(body:unknown)=>handler.fetch(new Request('https://pit.ohlabs.ai/mcp',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify(body)}));
  const decode=async(r:Response)=>{const text=await r.text();return JSON.parse(text.startsWith('event:') ? text.split('\n').find(l=>l.startsWith('data:'))!.slice(5) : text);};
  const init=await call({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'test',version:'1'}}});assert.equal(init.status,200);assert.equal((await decode(init)).result.serverInfo.name,'the-pit');
- const list=await call({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});assert.equal(list.status,200);assert.deepEqual((await decode(list)).result.tools.map((t:any)=>t.name).sort(),['pit_append','pit_list','pit_read_range','pit_search']);await handler.close();
+ const list=await call({jsonrpc:'2.0',id:2,method:'tools/list',params:{}});assert.equal(list.status,200);const tools=(await decode(list)).result.tools;assert.deepEqual(tools.map((t:any)=>t.name).sort(),['pit_append','pit_list','pit_read_range','pit_search']);for(const tool of tools){assert.equal(typeof tool.annotations.destructiveHint,'boolean');assert.equal(typeof tool.annotations.readOnlyHint,'boolean');assert.equal(tool.annotations.openWorldHint,false);}await handler.close();
+});
+
+test('per-user throttle rejects before executing tools and fails closed',async()=>{
+ const request=new Request('https://pit.ohlabs.ai/mcp',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'pit_append',arguments:{content:'must not be saved'}}})});
+ const keys:string[]=[];const denied={...env,PIT_RATE_LIMIT:{limit:async({key}:{key:string})=>{keys.push(key);return {success:false};}}};
+ const original=globalThis.fetch;globalThis.fetch=async()=>{throw new Error('DB must not be called');};
+ try{const result=await serveAuthenticated(request,denied,'private-token','owner');assert.equal(result.status,429);assert.equal(result.headers.get('Retry-After'),'60');assert.deepEqual(keys,['pit-user:owner']);assert.ok(!(await result.text()).includes('private-token'));
+ const broken={...env,PIT_RATE_LIMIT:{limit:async()=>{throw new Error('binding unavailable');}}};assert.equal((await serveAuthenticated(request,broken,'private-token','owner')).status,503);
+ }finally{globalThis.fetch=original;}
 });

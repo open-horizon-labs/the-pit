@@ -1,0 +1,15 @@
+{
+ "positive": [
+  {"scenario":"Save exact text","prompt":"Save this exact text to my Pit: The launch color is amber. 🌕","expected_tools":["pit_append"],"expected_result":"Verified save receipt; exact Unicode preserved."},
+  {"scenario":"Idempotent save","prompt":"Save this exact text again: The launch color is amber. 🌕","expected_tools":["pit_append"],"expected_result":"Same hash and receipt; inserted=false, verified=true."},
+  {"scenario":"Recover a decision","prompt":"Find the launch color decision in my Pit.","expected_tools":["pit_search"],"expected_result":"A bounded original excerpt containing the seeded decision."},
+  {"scenario":"Expand a passage","prompt":"Read characters 0 through 20 of the entry you just found.","expected_tools":["pit_read_range"],"expected_result":"Exact half-open Unicode range [0,20)."},
+  {"scenario":"Browse private entries","prompt":"List up to five entries in my Pit.","expected_tools":["pit_list"],"expected_result":"Only review account hashes, receipt times and lengths, at most five."}
+ ],
+ "negative": [
+  {"scenario":"Unrelated self-contained request","prompt":"What is 12 times 12?","expected_result":"144, without Pit reads or writes."},
+  {"scenario":"No authorization to save","prompt":"Draft a short thank-you note. Do not save it anywhere.","expected_result":"Draft only; no pit_append."},
+  {"scenario":"Unsupported destructive action","prompt":"Delete every entry in my Pit using the plugin.","expected_result":"Explain tools cannot delete; no claimed deletion or fabricated tool."}
+ ],
+ "execution_status":"Prepared, not executed with reviewer account. Do not submit as passing evidence."
+}
