@@ -1,6 +1,6 @@
 # Local capture and usage metrics
 
-Version 0.1.2 bundles the hosted tools, three skills and five hook handlers. Local hooks are supported by ChatGPT Work/Codex when the package scripts are present in the local execution environment. Installing on the web alone does not deploy them. Cloud capture is unsupported.
+Version 0.1.3 bundles the hosted tools, three skills, local history collector and five hook handlers. Local hooks are supported by ChatGPT Work/Codex when the package scripts are present in the local execution environment. Installing on the web alone does not deploy them. Cloud capture is unsupported.
 
 ## Requirements and setup
 
@@ -17,6 +17,14 @@ Trusting the PreCompact capture handler opts into uploading completed user and a
 Capture saves a private snapshot and receipt before upload, then checks the exact-text hash receipt. No model turn is invoked and saved app authorization is consumed by the native runtime, not copied into the plugin. Unconfirmed delivery retains the snapshot and warns while allowing compaction. Disable the PreCompact **capture** handler to stop automatic uploads; leave the separate metrics handler enabled if desired. A manual export still requires an explicit export request.
 
 Before saving private text, complete the own-account save/search checks in INSTALL.md. The current app registration is a developer trial; independent account installation is not yet verified.
+
+## Explicit all-history collection
+
+`skills/export-to-pit/scripts/harvest_history.py` is an opt-in local command for collecting visible text from existing Codex rollout files. It scans `~/.codex/sessions` and `~/.codex/archived_sessions`; configured remote coder targets can be added explicitly. It sends rendered user/assistant text through the connected hosted Pit app using its saved authorization. The collector does not install a hook or start a background service by itself.
+
+Run one pass with `python3 "<installed plugin root>/skills/export-to-pit/scripts/harvest_history.py" --once`. The local source uses `~/.codex`, or the path passed with `--codex-home`; its stable source label can be changed with `--source-id`. A configured remote account can be added with `--coder-target personal.stock` or `--coder-target personal.assembler`; remote scans use that account's `~/.codex` directory. Use only targets already configured for the intended accounts. Repeated collection can run with `--interval 300` (the default) under a process supervisor chosen by the user. The private SQLite checkpoint is stored at `~/.local/state/the-pit/harvest.sqlite3`; it contains source/session/path metadata, hashes, verified entry IDs and parser coverage. Uploaded headers include the source ID, session UUID and session start when available; local filesystem paths stay in the checkpoint. Messages may include `Recorded at` labels from their rollout record timestamps; these mark when the source recorded the message, not when the described activity happened. If delivery is uncertain, it temporarily retains the exact pending text and retries those bytes before rescanning; pending text is deleted only after a verified receipt. The command prints aggregate outcomes and does not print transcript contents. `--once` exits nonzero if a source or transcript operation failed; unsupported or empty sessions are reported separately.
+
+The source timestamp in the header is labeled as session start. Per-message `Recorded at` labels, when present, come from each rollout record and indicate when the source recorded it, not when the described activity happened. Coverage is limited to verified visible text forms in local rollout records. Tool events, hidden reasoning, attachments and unsupported content are excluded and reported in coverage. Forked rollouts are accepted only when their session metadata explicitly links the inherited parent. Legacy missing-ID pairs are matched one-to-one within contiguous runs of the same visible role/text across opposite representations; distinct stable IDs remain separate, and ambiguous legacy formats remain best effort. Changed or newly supported rendering is rescanned when the parser fingerprint changes; exact-text deduplication avoids a second Pit entry when rendered text is unchanged. This command has not been run against production history as part of package preparation.
 
 ## Usage measurement
 

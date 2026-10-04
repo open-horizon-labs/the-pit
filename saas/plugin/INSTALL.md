@@ -9,7 +9,7 @@ This is a developer trial, not a public directory installation. The current ZIP 
 ## First: try the supplied package
 
 1. Use ChatGPT Work with local execution and access to the Plugins Directory. Developer mode and installation availability depend on your plan and workspace policy.
-2. Obtain `the-pit-hosted-0.1.2.zip` from the publisher. In the Plugins Directory, use its archive import control if available, select the ZIP, then install The Pit. If archive import is unavailable, ask Work to install the plugin folder from a local marketplace using the instructions at https://developers.openai.com/plugins/build/plugins . The package folder is `saas/plugin` in this repository.
+2. Obtain `the-pit-hosted-0.1.3.zip` from the publisher. In the Plugins Directory, use its archive import control if available, select the ZIP, then install The Pit. If archive import is unavailable, ask Work to install the plugin folder from a local marketplace using the instructions at https://developers.openai.com/plugins/build/plugins . The package folder is `saas/plugin` in this repository.
 3. Open The Pit's app connection and choose Connect. Sign in using your own email; complete the email link in the same browser profile that started sign-in. The email sign-in flow can create your account when registrations are enabled. If registration fails, report the visible error to the publisher rather than using somebody else's credentials.
 4. Review and approve the connection to your private Pit.
 5. In a new Work conversation, enable The Pit and run the checks below.

@@ -2,7 +2,7 @@
 
 For another developer's installation trial, follow [INSTALL.md](INSTALL.md). It covers trying the current package first, the operator-assisted fallback if the unpublished integration is inaccessible, and concrete save/retrieve checks. Cross-account installation remains unverified. The historical notes below describe the author's successful trial.
 
-Portable Agent Plugins package, version 0.1.2. Remote endpoint: `https://pit.ohlabs.ai/mcp`. Save and retrieval skills validated with the Skill Creator validator. Includes three skills and local capture/metrics hooks, with an explicit review/trust step. No credentials or personal state are bundled. See LOCAL.md.
+Portable Agent Plugins package, version 0.1.3. Remote endpoint: `https://pit.ohlabs.ai/mcp`. Save and retrieval skills validated with the Skill Creator validator. Includes three skills, local capture/metrics hooks and an opt-in all-history collector. No credentials or personal state are bundled. See LOCAL.md.
 
 This is an authoring prototype, not a published directory listing. Public submission still needs complete publisher/legal metadata and real installed-client evaluation.
 
