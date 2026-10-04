@@ -9,6 +9,8 @@ companion=root.parent/'plugin'
 shared=['hooks/hooks.json','hooks/precompact.py','hooks/retrieval_context.py',
         'metrics/pit_metrics.py','metrics/scan_usage.py',
         'skills/export-to-pit/scripts/export_session.py',
+        'skills/export-to-pit/scripts/transcripts.py',
+        'skills/export-to-pit/scripts/harvest_history.py',
         'skills/export-to-pit/scripts/hosted_client.py',
         'skills/export-to-pit/scripts/pit_support.py']
 for rel in shared:
