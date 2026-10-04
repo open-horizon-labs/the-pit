@@ -22,6 +22,20 @@ class ClientTests(unittest.TestCase):
             self.client.read_range("a" * 64, 3, 8)
             api.assert_called_once_with("rpc/pit_read_range", "POST", {"p_id": "a" * 64, "p_start": 3, "p_end": 8})
 
+    def test_search_page_uses_additive_rpc_and_paired_keyset(self):
+        with patch.object(self.client, "api", return_value=[]) as api:
+            self.client.search_page("literal", before_received_at="2026-10-04T12:30:00+00:00", before_id="a" * 64)
+            api.assert_called_once_with("rpc/pit_search_page", "POST", {
+                "p_query": "literal", "p_limit": 20, "p_context": 500,
+                "p_before_received_at": "2026-10-04T12:30:00+00:00", "p_before_id": "a" * 64})
+        with patch.object(self.client, "api") as api:
+            for args in [("literal", 21), ("literal", 5, 500, "2026-10-04T12:30:00Z", None),
+                         ("literal", 5, 500, None, "a" * 64), ("literal", 5, 500, "2026-10-04T12:30:00", "a" * 64),
+                         ("literal", True), ("literal", 5, True)]:
+                with self.assertRaises(client_module.PitError):
+                    self.client.search_page(*args)
+            api.assert_not_called()
+
     def test_invalid_reader_bounds_never_reach_server(self):
         with patch.object(self.client, "api") as api:
             for args in [("",), ("x", 21), ("x", 5, -1)]:

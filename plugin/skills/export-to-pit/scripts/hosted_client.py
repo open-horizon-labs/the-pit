@@ -59,6 +59,11 @@ class Client:
             raise DeliveryUnknown('Hosted Pit exact-text receipt unconfirmed')
         return {**result,'uploaded':True,'destination':'hosted'}
     def search(self,query,limit=5,context=500):return self.call('pit_search',{'query':query,'limit':limit,'context':context})
+    def search_page(self,query,limit=20,context=500,before_received_at=None,before_id=None):
+        args={'query':query,'limit':limit,'context':context}
+        if before_received_at is not None or before_id is not None:
+            args.update(before_received_at=before_received_at,before_id=before_id)
+        return self.call('pit_search_page',args)
     def read_range(self,identity,start=0,end=1000):return self.call('pit_read_range',{'id':identity,'start':start,'end':end})
     def verify(self,content):
         identity=hashlib.sha256(content.encode('utf-8')).hexdigest()
