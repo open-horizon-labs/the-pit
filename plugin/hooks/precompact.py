@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import time
 import sys
 import uuid
 
@@ -11,8 +12,10 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "skills/export-to-pit/scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from export_session import locate_rollout, render_snapshot, save_snapshot
-from pit_client import save_config
+from pit_support import save_config
 from retrieval_context import remember
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "metrics"))
+import pit_metrics
 
 EXPORTS = Path.home() / ".local/share/the-pit/exports"
 
@@ -40,15 +43,19 @@ def run(event, exports=EXPORTS):
     receipt_path = output.with_suffix(".receipt.json")
     # Record the recoverable file before starting any remote operation.
     save_config(receipt, receipt_path)
+    started=time.monotonic()
     try:
-        process = subprocess.run([sys.executable, str(SCRIPTS / "pit_client.py"),
-                                  "--request-timeout", "10", "--append-file", str(output)],
+        process = subprocess.run([sys.executable, str(SCRIPTS / "hosted_client.py"),
+                                  "--request-timeout", "30", "--append-file", str(output)],
                                  capture_output=True, text=True, timeout=45)
         if process.returncode == 0:
             delivered = json.loads(process.stdout)
             if delivered.get("id") != receipt["sha256"] or delivered.get("verified") is not True:
                 raise ValueError("Invalid delivery receipt")
-            receipt.update(delivered, status="saved_in_pit")
+            receipt.update(delivered, status="saved_in_pit", destination="hosted")
+            try:
+                pit_metrics.record(str(uuid.uuid4()), "pit_append", {"structuredContent":delivered}, (time.monotonic()-started)*1000, origin="automatic_capture", transport="hosted")
+            except Exception:pass
             save_config(receipt, receipt_path)
             try:
                 characters = len(content.decode("utf-8"))
@@ -62,7 +69,7 @@ def run(event, exports=EXPORTS):
     # A nonzero child or timeout is conservative unknown delivery, with no automatic retry.
     return {"continue": True, "systemMessage":
             f"Pit upload is unconfirmed. Snapshot retained at {output}. "
-            "Recover with pit_client.py --verify-file using that file; compaction can continue."}
+            "Recover with hosted_client.py --verify-file using that file; compaction can continue."}
 
 
 def main():

@@ -1,7 +1,7 @@
 {
   "name": "the-pit",
   "version": "0.5.0",
-  "description": "Save useful text, recover missing context with bounded reads, and capture local conversations.",
+  "description": "Local companion for hosted Pit: conversation capture and passive harness usage metrics.",
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"

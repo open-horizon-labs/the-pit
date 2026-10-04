@@ -1,17 +1,29 @@
-# Pit call metrics
+# Pit harness metrics
 
-Implemented 2026-10-01 in source and installed local plugin 0.5.0.
+Updated 2026-10-04. The connected hosted Pit app is the primary reader/writer. The local companion captures precompaction conversation text into that same account and measures local harness use. Make remains unchanged.
 
-The MCP server records tool, UTC timestamp, success/error, elapsed milliseconds, search hit count, returned Unicode character count, and verified/inserted write outcomes in a private SQLite sidecar at `~/.local/share/the-pit/metrics/events.sqlite3`. Queries, entry text, content hashes, credentials and error messages are not stored. Directory permissions are 0700 and database permissions 0600. Logging is best effort; failures never block Pit calls. No metrics are injected into model context or written to the Pit corpus.
+## What is counted
 
-A filtered PostToolUse hook records session, turn and call identifiers. An opaque event UUID in MCP `_meta` joins the hook observation to the measured execution. Unlinked observations remain visible rather than guessed. Server executions and hook observations are separate counts, not added together. Repeated hook call IDs are deduplicated. Searches followed by later range reads in the same observed session are reported as a session-level indicator, not proof they concern the same result. Characters measure retrieval volume, not tokens or usefulness. No-call sessions and missed search opportunities are outside this log's coverage.
+The private SQLite sidecar `~/.local/share/the-pit/metrics/events.sqlite3` records tool, timestamp, success/error, timing, hit count, returned Unicode characters and verified/inserted write outcomes. It never stores inputs, queries, conversation text, entry hashes, credentials or error messages. Session and tool-call IDs provide deduplication. Directory permissions are 0700 and database permissions 0600.
 
-Report on demand:
+`harness` calls, historical observations, automatic capture, migration and legacy diagnostics are separate origins. Main tool totals and session indicators include harness calls only. Search followed by a range read is a session-level indicator, not proof the calls concern the same result. Characters are not tokens or usefulness. Missing search opportunities are not measured.
 
-```sh
-python3 /Users/drazen/.codex/plugins/cache/the-pit-local/the-pit/0.5.0/metrics/pit_metrics.py
-```
+PostToolUse observes supported tool names. Because native app calls do not consistently dispatch that callback, Stop and PreCompact also incrementally scan completed Pit MCP tool records in the exact local session. The scanner saves only byte offsets and coverage state, not raw records. Callback and transcript observations deduplicate by session and call ID. Transcript timing is the complete recorded tool duration; until that record is available, hosted `_meta` timing covers the Worker action only. Logging failure never blocks Pit tools or compaction.
 
-Verification: unit tests cover private metadata-only storage, hook linking/deduplication, missing metadata, error records and logging failure isolation. A real installed-server search returned one hit, 88 characters and a metrics receipt, with measured elapsed time about 392 ms. The initial database also contains one diagnostic error from the pre-isolation test run; these initial two calls are setup evidence, not agent adoption data.
+The scanner is bounded to 32 MiB per invocation. Partial trailing records remain pending. Truncation, identity mismatch and unsupported completion formats produce incomplete/unavailable coverage rather than zero usage. This is a local transcript-format integration, not a guaranteed public telemetry API. No cloud session coverage is claimed. Successful metrics hooks inject no context.
 
-Session attribution was tested with synthetic hook events, not yet live Work callbacks. Restart the harness and review/trust the changed plugin hook definition, then run a real Pit call and check `hook_observations` and `linked_observations`. Until then, per-session coverage is unverified. Existing capture remains unchanged. The MCP process must reload to use server instrumentation. No historical transcript backfill is performed. Metrics currently stay on this Mac and grow until manually cleared; no retention scheduler or remote exporter is configured.
+## Reporting
+
+Run `python3 /Users/drazen/.codex/plugins/cache/the-pit-local/the-pit/0.5.0/metrics/pit_metrics.py` on demand. Coverage cursors are under `~/.local/share/the-pit/metrics/scan-state/`. Metrics remain on this Mac; no retention schedule or remote analytics exporter is installed.
+
+A one-time metadata-only backfill uses `scan_usage.py --backfill`; its observations are labeled `historical`, separately from forward harness use. Backfill scans each session once per invocation and reports pending/unsupported coverage. It never uploads historical conversation text.
+
+## Verification
+
+Tests cover exact session identity, incremental scans, callback/transcript deduplication, private metadata-only storage, partial records, unsupported formats, truncated transcripts, origin separation and capture failure isolation. The hosted Worker adds action timing to all four tools on both success and error; this is response metadata, not persistent server analytics.
+
+41 existing corpus entries (3,010,903 UTF-8 bytes) were copied and verified in the hosted account. Originals remain intact. The migration journal is private and capture writes use the connected app's saved authorization, without copying credentials into the plugin.
+
+Installed verification: all five companion hook definitions were enabled/trusted through native hook discovery. A direct invocation of the installed PreCompact wrapper saved 332 messages (116,761 UTF-8 bytes) with a verified hosted receipt. A real hosted search in this session was observed from its completed harness record at 425.230417 ms. Natural Stop/PreCompact dispatch after the changed definitions is not yet claimed. Restart existing harnesses to load the new definitions.
+
+Historical metadata backfill observed 135 Pit calls: 118 searches, four range reads and 13 writes. One search failed. These include setup/verification activity and are not adoption estimates. Pending bounded scans were completed; 21 older files remained unsupported/unavailable, so historical totals are partial.

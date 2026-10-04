@@ -34,3 +34,13 @@ test('per-user throttle rejects before executing tools and fails closed',async()
  const broken={...env,PIT_RATE_LIMIT:{limit:async()=>{throw new Error('binding unavailable');}}};assert.equal((await serveAuthenticated(request,broken,'private-token','owner')).status,503);
  }finally{globalThis.fetch=original;}
 });
+
+test('tool result includes content-free duration metadata on success and failure',async()=>{
+ const handler=makeHandler(env,'private-token');const original=globalThis.fetch;
+ const call=async(id:number)=>{const r=await handler.fetch(new Request('https://pit.ohlabs.ai/mcp',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id,method:'tools/call',params:{name:'pit_search',arguments:{query:'private query'}}})}));const t=await r.text();return JSON.parse(t.startsWith('event:')?t.split('\n').find(l=>l.startsWith('data:'))!.slice(5):t).result;};
+ try{
+  globalThis.fetch=async()=>new Response('[]',{headers:{'Content-Type':'application/json'}});
+  const success=await call(31);assert.ok(success._meta['the-pit/duration_ms']>=0);assert.match(success._meta['the-pit/metrics_event_id'],/^[a-f0-9-]{36}$/);assert.ok(!JSON.stringify(success._meta).includes('private'));
+  globalThis.fetch=async()=>new Response('{}',{status:500});const failed=await call(32);assert.equal(failed.isError,true);assert.ok(failed._meta['the-pit/duration_ms']>=0);
+ }finally{globalThis.fetch=original;await handler.close();}
+});

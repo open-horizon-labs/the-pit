@@ -1,5 +1,13 @@
 # Export to Pit plugin
 
+## Current installation — 2026-10-04
+
+Version 0.5.0 is now a local companion to the connected hosted Pit app. Hosted app tools handle reads and writes; PreCompact and manual exports write through native saved app authorization. The former local MCP server is removed from the active plugin configuration. The separate unauthenticated `pit_hosted` server is disabled. Make remains on its existing sink.
+
+41 original entries (3,010,903 UTF-8 bytes) were copied and verified in the hosted account; originals remain intact. Hosted capture was verified with this session. PostToolUse, Stop and PreCompact collect metadata-only harness usage; see [metrics](metrics.md) for coverage and separation from automatic writes. Restart existing harnesses to load the changed hook definitions. All five installed definitions are trusted.
+
+The following sections document the original personal-database setup and earlier verification; their connection and tool instructions are superseded by the current hosted [export skill](plugin/skills/export-to-pit/SKILL.md).
+
 ## Installed and connected — 2026-09-30
 
 The local plugin `the-pit@the-pit-local` is installed and enabled, version **0.4.0**. It bundles an [export skill](plugin/skills/export-to-pit/SKILL.md) and Python 3 helpers without third-party dependencies. Say **“Export this session to Pit”** in a local Work/Codex conversation where the skill is available. The user also authorized automatic export before compaction for **all local sessions**, across workspaces. The local Work runtime discovers both the skill and the PreCompact hook. Restart an existing harness to load the updated installation. This is a local installation, not a published plugin or a cloud Work integration.

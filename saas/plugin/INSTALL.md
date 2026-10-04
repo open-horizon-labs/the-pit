@@ -9,10 +9,11 @@ This is a developer trial, not a public directory installation. The current ZIP 
 ## First: try the supplied package
 
 1. Use ChatGPT Work with local execution and access to the Plugins Directory. Developer mode and installation availability depend on your plan and workspace policy.
-2. Obtain `the-pit-hosted-0.1.1.zip` from the publisher. In the Plugins Directory, use its archive import control if available, select the ZIP, then install The Pit. If archive import is unavailable, ask Work to install the plugin folder from a local marketplace using the instructions at https://developers.openai.com/plugins/build/plugins . The package folder is `saas/plugin` in this repository.
+2. Obtain `the-pit-hosted-0.1.2.zip` from the publisher. In the Plugins Directory, use its archive import control if available, select the ZIP, then install The Pit. If archive import is unavailable, ask Work to install the plugin folder from a local marketplace using the instructions at https://developers.openai.com/plugins/build/plugins . The package folder is `saas/plugin` in this repository.
 3. Open The Pit's app connection and choose Connect. Sign in using your own email; complete the email link in the same browser profile that started sign-in. The email sign-in flow can create your account when registrations are enabled. If registration fails, report the visible error to the publisher rather than using somebody else's credentials.
 4. Review and approve the connection to your private Pit.
 5. In a new Work conversation, enable The Pit and run the checks below.
+6. For local capture and metrics, read [LOCAL.md](LOCAL.md), check its prerequisites, then review and trust only the hooks you want. Installation on the web does not deploy local scripts. Disable the old `the-pit@the-pit-local` companion before trusting the combined package hooks to avoid duplicate callbacks.
 
 If the app is inaccessible, missing, or cannot be connected, send the publisher the visible error and your ChatGPT surface/workspace type. Importing the skills alone is not a working Pit connection.
 
@@ -46,7 +47,7 @@ Do not interpret a failed search as an empty corpus. Record the error and the ap
 
 - Inspect the supplied callback; require the real ChatGPT HTTPS callback, not an arbitrary destination. Confirm the security-sensitive access change at action time before applying it through browser controls.
 - In Intake → Authentication → OAuth clients, edit The Pit (`79c0b4f7-d42d-47f2-9a65-2cfb38f16ab4`). Add the supplied complete callback to its redirect list **while preserving existing redirects**. Keep public client / token authentication `none` / PKCE. Existing client allowlists already cover this client ID; changing a redirect does not require a new allowlist entry.
-- In a separate local copy of the package, change only `.app.json` → `apps.pit.id` to the recipient's `asdk_app_…` technical ID (strip the leading `plugin_` from the URL ID). Keep the endpoint and both skills. ZIP the package contents with `plugin.json` at the archive root. Do not overwrite the author's package mapping or include local credentials, environment files or capture hooks.
+- In a separate local copy of the package, change only `.app.json` → `apps.pit.id` to the recipient's `asdk_app_…` technical ID (strip the leading `plugin_` from the URL ID). Keep the endpoint, all three skills and bundled local resources. ZIP the package contents with `plugin.json` at the archive root. Do not overwrite the author's package mapping or include local credentials, environment files or personal snapshots/metrics/trust configuration.
 - Verify recipient installation and all checks before describing this as independently usable. Record which package mapping and callback were tested.
 
 Official setup references: https://developers.openai.com/plugins/deploy/connect-chatgpt and https://developers.openai.com/plugins/build/plugins .

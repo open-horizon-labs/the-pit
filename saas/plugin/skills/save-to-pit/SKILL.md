@@ -9,4 +9,4 @@ Pass the exact supplied text. Do not require a source, title, tags, classificati
 
 Report success only from the tool receipt. An exact duplicate is a successful save when verified; report that it was already present if useful. Preserve the returned hash for follow-up reads. A failed or uncertain receipt is not confirmed storage.
 
-This package saves text available in the current workflow. It does not install automatic conversation capture or precompaction hooks.
+This skill saves text available in the current workflow. For an explicitly requested full local conversation-text export, use export-to-pit. The package also bundles local PreCompact capture, which runs only after the user reviews and trusts that hook. Installation alone does not authorize automatic capture; never assume another user has enabled it. Cloud session capture is unsupported.

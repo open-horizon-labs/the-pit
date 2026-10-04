@@ -66,3 +66,13 @@ Deployed Worker/site `eb031322-58b7-4ee4-a3e5-76e6face306d`. Initial allowance: 
 Portable package 0.1.1 includes listing text, icons, policy URLs, five positive and three negative test definitions. It remains a prepared archive, not an uploaded/reviewed/public package. Reviewer account, real browser export/erase/registration/denial/refresh journeys and walkthrough remain incomplete. Browser extension stopped responding after the DB work while the Mac was locked; Supabase CLI has no access token. User asked to unlock before remaining browser steps. Do not use personal OAuth credentials as reviewer credentials or claim the test definitions were executed.
 
 2026-10-02 reviewer setup: user created `pit+review@urch.eu`; dashboard readback confirms account `2788e1bb-8024-461c-bcd2-fbbdd4d24f87`. Native Arc access works while browser-extension requests time out. A separate private Arc window is open for reviewer password sign-in; password remains with the user. Reviewer tools, lifecycle journeys and portal review are not yet verified for this account.
+
+
+## Harness metrics integration (2026-10-04)
+
+Deployed Worker version `1dc798f8-1210-4ef4-b628-d7af0f10313b`. All four tools return opaque event ID and Worker action duration in MCP `_meta`, on success and failure. No persistent server analytics or raw request logging was added. Five Worker tests and TypeScript validation passed. The local companion measures completed harness tool duration from local records and keeps it separate from capture/migration/history. Static assets were unchanged by this deploy.
+
+
+## Combined plugin package (2026-10-04)
+
+Prepared portable 0.1.2 archive with hosted tools, three skills, local capture and passive metrics hooks. See [local setup](plugin/LOCAL.md) and [release verification](release/README.md). Hook review/trust opts into local capture; web installation alone does not enable it. Archive verification passed independently of the source tree. This updates the distributable source/ZIP, not the installed private remote bundle or public portal listing.

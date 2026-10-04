@@ -2,7 +2,15 @@
 
 This is a release checklist, not publication evidence.
 
-## Current status — 2026-10-01
+## Packaged local hooks — 2026-10-04
+
+Prepared `../dist/the-pit-hosted-0.1.2.zip`: hosted tools, three skills, five local hook handlers, capture scripts and metadata-only usage metrics. Explicit build allowlist excludes legacy credential code, migration tools and personal state. Read LOCAL.md before trusting capture; disable the separate local companion to avoid duplicate hooks. Cloud capture and Windows support are not claimed. The installed private hosted 0.1.0 bundle and portal publication have not been updated by building this archive.
+
+Verification: 44 companion tests passed. Extracted archive independently imported all seven runtime modules with isolated import paths, ran the shipped exporter CLI against a fixture, measured/deduplicated a fixture call, and confirmed no fixture text or query in metrics. Archive contains 17 allowlisted files. These checks do not establish second-account install/auth or natural callbacks after archive import.
+
+Rebuild: `python3 build-package.py`; verify: `python3 verify-package.py ../dist/the-pit-hosted-0.1.2.zip` from this directory. Shared runtime files are copied from `../../plugin` by the build script; edit that source rather than the staged copies.
+
+## Earlier status — 2026-10-01
 
 - Production storage allowance and erasure migrations applied; rollback-only lifecycle/isolation tests passed, existing entries preserved.
 - User-selected defaults: initial 1 GiB allowance per account, retain saved text until erasure. Endpoint throttle already deployed.

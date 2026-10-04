@@ -1,5 +1,8 @@
 # The Pit
 
+Current local setup (2026-10-04): connected hosted app tools, with local capture and passive harness metrics. The original corpus has been copied and verified; originals retained and Make unchanged. See [current installation](plugin.md) and [metrics](metrics.md).
+
+
 The Pit is an append-only corpus of distinct unstructured text, with an open read interface so agents can build their own search tools and run searches and transforms close to the data. Identical text is stored once; repeated submissions are ignored.
 
 ## Core invariant: the source is irrelevant

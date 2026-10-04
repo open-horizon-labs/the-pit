@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "the-pit-hosted",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Save exact text to your private Pit and recover context with bounded searches and reads.",
   "homepage": "https://pit.ohlabs.ai",
   "extensions": {
@@ -25,7 +25,7 @@
         "supportURL": "https://pit.ohlabs.ai/support",
         "privacyPolicyURL": "https://pit.ohlabs.ai/privacy",
         "termsOfServiceURL": "https://pit.ohlabs.ai/terms",
-        "longDescription": "The Pit keeps exact text in your private account so you can recover useful context across work. Save notes, briefs and decisions you choose to preserve. Find passages with literal search and read only the relevant ranges. Identical text is stored once. Includes skills for selective retrieval and authorized saves. Tools read and append; data export and erasure are available on the account website. The hosted plugin does not automatically capture complete conversations."
+        "longDescription": "The Pit saves exact text in your private account and recovers original passages with literal search and bounded reads. Identical text is stored once. Includes skills for selective retrieval, authorized saves and local session export. On supported local ChatGPT Work and Codex installations, separately reviewed and trusted hooks can automatically export completed conversation text before compaction and collect private local usage metrics. Hook scripts require Python 3 and the Codex CLI. Web installation alone does not enable local capture. Tools read and append; account export and erasure are available on the website."
       },
       "apps": "./.app.json",
       "review": {
@@ -85,8 +85,9 @@
         }
       },
       "publication": {
-        "release_notes": "Initial public release candidate: private exact-text append, deduplication, literal search, bounded Unicode reads, enumeration, and two usage skills. Website provides account export and confirmed erasure. Review account tests and video are pending."
-      }
+        "release_notes": "0.1.2 bundles local precompaction capture, metadata-only usage metrics and a session export skill alongside hosted tools. Hook review and trust required. Local execution only; cross-account installation and public submission remain unverified."
+      },
+      "hooks": "./hooks/hooks.json"
     }
   }
 }

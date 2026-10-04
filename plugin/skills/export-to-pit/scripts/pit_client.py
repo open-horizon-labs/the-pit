@@ -15,12 +15,7 @@ import urllib.request
 CONFIG = Path.home() / ".config/the-pit/connection.json"
 
 
-class PitError(Exception):
-    pass
-
-
-class DeliveryUnknown(PitError):
-    pass
+from pit_support import PitError, DeliveryUnknown
 
 
 class NoRedirects(urllib.request.HTTPRedirectHandler):

@@ -123,9 +123,11 @@ def main():
         receipt["status"] = "validated" if args.check else "local_export_only"
         receipt["uploaded"] = False
         if args.upload:
-            from pit_client import Client, PitError, DeliveryUnknown
+            from pit_support import PitError, DeliveryUnknown
+            from hosted_client import Client
             try:
-                receipt.update(Client().append(content.decode("utf-8")))
+                with Client() as client:
+                    receipt.update(client.append(content.decode("utf-8")))
                 receipt["status"] = "saved_in_pit"
             except (PitError, OSError, ValueError, KeyError) as exc:
                 receipt["status"] = "delivery_unknown" if isinstance(exc, DeliveryUnknown) else "upload_failed"

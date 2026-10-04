@@ -9,7 +9,7 @@ import uuid
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "skills/export-to-pit/scripts"
 sys.path.insert(0, str(SCRIPTS))
-from pit_client import save_config
+from pit_support import save_config
 
 STATE = Path.home() / ".local/share/the-pit/retrieval"
 TOOL_NAME = re.compile(r"^mcp__pit__pit_(search|read_range)$")

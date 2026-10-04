@@ -28,6 +28,7 @@ class HookTests(unittest.TestCase):
         self.source.write_bytes(b"".join(json.dumps(r, ensure_ascii=False).encode() + b"\n" for r in records))
         self.event = {"hook_event_name": "PreCompact", "trigger": "auto", "session_id": THREAD,
                       "transcript_path": str(self.source), "cwd": "/any/local/project"}
+        patch.object(hook.pit_metrics, "record").start()
         self.remember = patch.object(hook, "remember").start()
         self.addCleanup(patch.stopall)
 

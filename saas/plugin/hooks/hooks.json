@@ -1,0 +1,59 @@
+{
+  "description": "Save completed conversation text to The Pit before local session compaction.",
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "^(manual|auto)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/precompact.py\"",
+            "timeout": 90,
+            "statusMessage": "Saving conversation text to The Pit"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/metrics/scan_usage.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|compact)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/hooks/retrieval_context.py\"",
+            "timeout": 5,
+            "statusMessage": "Pit context availability"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^mcp__(?:(?:pit|pit_hosted)__|codex_apps__the_pit[_.])pit_(search|read_range|append|list)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/metrics/pit_metrics.py\" --hook",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/metrics/scan_usage.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

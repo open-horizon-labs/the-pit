@@ -40,7 +40,12 @@ export function makeHandler(env: Env, token: string) {
   return result.json();
  };
  const output = (value: unknown) => ({content:[{type:'text' as const,text:JSON.stringify(value)}]});
- const run = async (action:()=>Promise<unknown>) => {try{return output(await action());}catch(error){return {...output({error:error instanceof Error && error.message==='Pit storage allowance reached. No text was saved.' ? error.message : 'Pit request failed. No successful write is confirmed.'}),isError:true};}};
+ const run = async (action:()=>Promise<unknown>) => {
+  const started=performance.now();const eventId=crypto.randomUUID();
+  const metadata=()=>({'the-pit/metrics_event_id':eventId,'the-pit/duration_ms':performance.now()-started});
+  try{return {...output(await action()),_meta:metadata()};}
+  catch(error){return {...output({error:error instanceof Error && error.message==='Pit storage allowance reached. No text was saved.' ? error.message : 'Pit request failed. No successful write is confirmed.'}),isError:true,_meta:metadata()};}
+ };
  return createMcpHandler(()=>{
   const server = new McpServer({name:'the-pit',version:'0.1.0'}, {jsonSchemaValidator:new CfWorkerJsonSchemaValidator()});
   server.registerTool('pit_append',{
