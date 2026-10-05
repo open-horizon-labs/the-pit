@@ -35,7 +35,7 @@ def scan(path,session,path_db=DEFAULT,state_root=STATE,origin='harness',max_byte
   if item.get('type')!='McpToolCall':continue
   server=item.get('server');tool=item.get('tool','')
   if server=='codex_apps' and tool.startswith('the_pit.'):name='mcp__codex_apps__'+tool
-  elif server in ('pit','pit_hosted') and tool in ('pit_search','pit_read_range','pit_append','pit_list'):name='mcp__'+server+'__'+tool
+  elif server in ('pit','pit_hosted') and tool in ('pit_query','pit_search','pit_read_range','pit_append','pit_list'):name='mcp__'+server+'__'+tool
   else:continue
   from pit_metrics import tool_name
   if not tool_name(name):continue

@@ -1,0 +1,49 @@
+name: Reader contracts
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  readers:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: disposable-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: disposable-test-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: saas/auth/package-lock.json
+      - name: Python contracts
+        run: python3 -m unittest discover -s plugin/tests -q
+      - name: Disposable PostgreSQL reader contracts
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f saas/tests/bootstrap.sql -f saas/tenant-storage.sql
+          -f query.sql -f saas/query.sql -f saas/tests/query.sql
+          -f saas/search-pagination.sql -f saas/tests/search-pagination.sql
+      - name: Hosted MCP and build
+        working-directory: saas/auth
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Portable package
+        run: |
+          pit_archive=$(python3 saas/release/build-package.py)
+          python3 saas/release/verify-package.py "$pit_archive"

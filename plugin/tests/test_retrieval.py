@@ -38,6 +38,27 @@ class ReaderTests(unittest.TestCase):
         client.read.assert_not_called()
         client.append.assert_not_called()
 
+    def test_pit_query_preserves_rpc_object_and_coverage(self):
+        response = {"entries": [{"id": "a" * 64, "excerpt": "literal"}],
+                    "coverage": {"candidate_limit": 100, "characters_per_entry": 1000000,
+                                 "candidates_truncated": True, "characters_truncated": False},
+                    "offset_unit": "zero-based Unicode code points"}
+        client = Mock(); client.query.return_value = response
+        result = server.call_tool("pit_query", {"terms": ["literal", "keyword"], "limit": 4,
+                                                  "entry_ids": ["a" * 64]}, Mock(return_value=client))
+        client.query.assert_called_once_with(["literal", "keyword"], 4, ["a" * 64], None, None)
+        self.assertEqual(result["structuredContent"], response)
+        self.assertEqual(json.loads(result["content"][0]["text"]), response)
+
+    def test_invalid_query_arguments_do_not_construct_client(self):
+        factory = Mock()
+        for args in [{}, {"terms": []}, {"terms": [" "]}, {"terms": ["x"], "extra": 1},
+                     {"terms": ["x"], "limit": True}, {"terms": ["x"], "since": "2026-10-05T00:00:00Z",
+                      "until": "2026-10-01T00:00:00Z"}]:
+            with self.assertRaises(server.PitError):
+                server.call_tool("pit_query", args, factory)
+        factory.assert_not_called()
+
     def test_append_preserves_text_and_returns_only_receipt(self):
         text = "Daily brief: ž🙂\nTrailing spaces  \n"
         receipt = {"id": "a"*64, "inserted": True, "verified": True}
@@ -85,7 +106,7 @@ class ReaderTests(unittest.TestCase):
                          text=True,capture_output=True,check=True)
         rows=[json.loads(line) for line in p.stdout.splitlines()]
         self.assertEqual(len(rows),2)
-        self.assertEqual([t["name"] for t in rows[1]["result"]["tools"]],["pit_append","pit_search","pit_search_page","pit_read_range"])
+        self.assertEqual([t["name"] for t in rows[1]["result"]["tools"]],["pit_append","pit_search","pit_query","pit_search_page","pit_read_range"])
         self.assertEqual(p.stderr,"")
 
 class ContextTests(unittest.TestCase):

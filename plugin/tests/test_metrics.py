@@ -23,6 +23,15 @@ class MetricsTests(unittest.TestCase):
    dump='\n'.join(db.iterdump());self.assertNotIn('private ž',dump);self.assertNotIn('secret',dump)
   self.assertEqual(self.path.stat().st_mode&0o777,0o600)
   self.assertEqual(self.path.parent.stat().st_mode&0o777,0o700)
+ def test_ranked_query_metrics_are_content_free(self):
+  result={'structuredContent':{'entries':[{'excerpt':'private evidence','id':'private hash'}], 'coverage':{'characters_truncated':True}}}
+  m.observe({'hook_event_name':'PostToolUse','session_id':ID,'tool_use_id':'ranked','tool_name':'mcp__pit__pit_query','tool_response':result},self.path)
+  report=m.report(self.path)
+  self.assertEqual(report['sessions'][0]['searches'],1)
+  tool=next(t for t in report['tools'] if t['tool']=='pit_query')
+  self.assertEqual(tool['returned_characters'],len('private evidence'))
+  with m.connect(self.path) as db:
+   self.assertNotIn('private', '\n'.join(db.iterdump()))
  def test_missing_meta_is_visible_unlinked(self):
   m.observe({'hook_event_name':'PostToolUse','session_id':ID,'tool_use_id':'call','tool_name':'mcp__pit__pit_append','tool_response':{}},self.path)
   self.assertEqual(m.report(self.path)['linked_observations'],1)
