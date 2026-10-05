@@ -7,7 +7,7 @@ import sys
 from datetime import datetime, timezone
 
 DEFAULT = Path.home()/'.local/share/the-pit/metrics/events.sqlite3'
-TOOLS = {'pit_search','pit_read_range','pit_append','pit_list'}
+TOOLS = {'pit_query','pit_search','pit_read_range','pit_append','pit_list'}
 
 def connect(path=DEFAULT):
     path=Path(path)
@@ -31,7 +31,7 @@ def record(event_id,tool,result,duration_ms,path=DEFAULT,origin="legacy",transpo
     rows=data if isinstance(data,list) else data.get('entries',[])
     receipt=data if isinstance(data,dict) else {}
     success=not result.get('isError',False)
-    hits=len(rows) if success and tool=='pit_search' else None
+    hits=len(rows) if success and tool in ('pit_search','pit_query') else None
     chars=sum(len(r.get('excerpt',r.get('content',''))) for r in rows) if success and tool!='pit_append' else None
     verified=int(receipt.get('verified') is True) if success and tool=='pit_append' else None
     inserted=int(receipt['inserted']) if success and type(receipt.get('inserted')) is bool else None
@@ -93,9 +93,9 @@ def report(path=DEFAULT):
                 'latency_ms_p95':times[min(len(times)-1,int(len(times)*.95))] if times else None,
                 'empty_searches':sum(r[2]==0 for r in rows),'returned_characters':sum(r[3] or 0 for r in rows),
                 'verified_writes':sum(r[4] or 0 for r in rows),'duplicate_writes':sum(r[5]==0 for r in rows)})
-        sessions=[{'session_id':r[0],'searches':r[1],'range_reads':r[2],'writes':r[3]} for r in db.execute("SELECT session_id,SUM(tool='pit_search'),SUM(tool='pit_read_range'),SUM(tool='pit_append') FROM calls WHERE origin='harness' GROUP BY session_id")]
+        sessions=[{'session_id':r[0],'searches':r[1],'range_reads':r[2],'writes':r[3]} for r in db.execute("SELECT session_id,SUM(tool IN ('pit_search','pit_query')),SUM(tool='pit_read_range'),SUM(tool='pit_append') FROM calls WHERE origin='harness' GROUP BY session_id")]
         return {'tools':tools,'historical_tools':[{'tool':r[0],'calls':r[1],'errors':r[2],'returned_characters':r[3] or 0} for r in db.execute("SELECT tool,COUNT(*),SUM(outcome='error'),SUM(returned_chars) FROM calls WHERE origin='historical' GROUP BY tool")], 'counts_by_origin':[{'origin':r[0] or 'legacy','calls':r[1]} for r in db.execute('SELECT origin,COUNT(*) FROM calls GROUP BY origin')],'completed_harness_calls':db.execute("SELECT COUNT(*) FROM calls WHERE origin='harness'").fetchone()[0],
-                'sessions_with_search_then_range':db.execute("SELECT COUNT(DISTINCT r.session_id) FROM calls r WHERE r.origin='harness' AND r.tool='pit_read_range' AND EXISTS(SELECT 1 FROM calls s WHERE s.origin='harness' AND s.session_id=r.session_id AND s.tool='pit_search' AND s.at<r.at)").fetchone()[0],
+                'sessions_with_search_then_range':db.execute("SELECT COUNT(DISTINCT r.session_id) FROM calls r WHERE r.origin='harness' AND r.tool='pit_read_range' AND EXISTS(SELECT 1 FROM calls s WHERE s.origin='harness' AND s.session_id=r.session_id AND s.tool IN ('pit_search','pit_query') AND s.at<r.at)").fetchone()[0],
                 'linked_observations':db.execute('SELECT COUNT(*) FROM observations WHERE linked=1').fetchone()[0], 'sessions':sessions}
 
 if __name__=='__main__':

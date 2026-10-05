@@ -36,6 +36,24 @@ class ClientTests(unittest.TestCase):
                     self.client.search_page(*args)
             api.assert_not_called()
 
+    def test_query_uses_dedicated_rpc_and_preserves_optional_scope(self):
+        with patch.object(self.client, "api", return_value={"entries": [], "coverage": {"candidate_limit": 100}}) as api:
+            result = self.client.query(["exact", "literal"], 7, ["a" * 64], "2026-10-01T00:00:00Z", "2026-10-05T00:00:00+00:00")
+        self.assertEqual(result["coverage"]["candidate_limit"], 100)
+        api.assert_called_once_with("rpc/pit_query", "POST", {
+            "p_terms": ["exact", "literal"], "p_limit": 7, "p_entry_ids": ["a" * 64],
+            "p_since": "2026-10-01T00:00:00Z", "p_until": "2026-10-05T00:00:00+00:00"})
+
+    def test_invalid_query_never_reaches_transport(self):
+        with patch.object(self.client, "api") as api:
+            for args in [([],), (["  "],), (["x"] * 17,), (["x" * 101],), (["x"], 0),
+                         (["x"], True), (["x"], 5, ["bad"]), (["x"], 5, ["a" * 64] * 101),
+                         (["x"], 5, None, "2026-10-05T00:00:00Z", "2026-10-01T00:00:00Z"),
+                         (["x"], 5, None, "2026-10-01T00:00:00", None)]:
+                with self.assertRaises(client_module.PitError):
+                    self.client.query(*args)
+            api.assert_not_called()
+
     def test_invalid_reader_bounds_never_reach_server(self):
         with patch.object(self.client, "api") as api:
             for args in [("",), ("x", 21), ("x", 5, -1)]:

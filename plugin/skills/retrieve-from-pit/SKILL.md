@@ -15,3 +15,5 @@ Make a lightweight Pit check at decision points: starting substantial work, choo
 6. Empty results mean no matching accessible entry, not proof the decision never happened. A failed connection is a retrieval failure, not an empty corpus. Ask a focused question when the relevant context remains unavailable.
 
 If hosted tools are unavailable, report the connection gap. Do not silently search the original personal database. This skill authorizes context reads; exports follow the separate export skill's authorization.
+
+When the connected server advertises `pit_query`, use it for a few literal keywords that should occur in the same entry, rather than submitting a full question. It returns ranked original windows and explicit coverage limits without a model call. Inspect `coverage` before interpreting absence; scan limits can omit older entries or later text. Expand useful hash/range anchors with `pit_read_range`. Use `entry_ids` only when membership is known, and remember receipt-time filters do not describe event chronology. If the tool is not advertised, continue using the existing literal tools.

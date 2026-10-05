@@ -38,6 +38,8 @@ A full-text index can be one reader. An agent's custom search program can be ano
 
 The first [retrieval trial](retrieval.md) returns bounded original passages with immutable entry/range anchors. Literal search and bounded range retrieval now execute in PostgreSQL before transfer, using a reader-owned trigram GIN index.
 
+An additive [ranked query reader](query.md) is available in this branch for keyword-driven, bounded original excerpts. It is not deployed by adding this code; install its reader SQL before exposing the new MCP tool. Literal search and range reads remain unchanged.
+
 Preservation means the text actually received by the Pit. An external mirror may already have changed what its source supplied.
 
 ## Decisions still open

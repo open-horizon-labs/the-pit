@@ -148,6 +148,39 @@ class Client:
             "p_query": query, "p_limit": limit, "p_context": context,
             "p_before_received_at": before_received_at, "p_before_id": before_id})
 
+    @staticmethod
+    def validate_query(terms, limit=5, entry_ids=None, since=None, until=None):
+        if (not isinstance(terms, list) or not 1 <= len(terms) <= 16
+                or any(not isinstance(term, str) or not 1 <= len(term) <= 100 or not term.strip() for term in terms)):
+            raise PitError("Query terms must be 1 to 16 nonblank literal keywords")
+        if type(limit) is not int or not 1 <= limit <= 20:
+            raise PitError("Invalid query limit")
+        if entry_ids is not None and (not isinstance(entry_ids, list) or len(entry_ids) > 100
+                or any(not isinstance(identity, str) or not re.fullmatch(r"[a-f0-9]{64}", identity) for identity in entry_ids)):
+            raise PitError("Invalid entry ID scope")
+        parsed = []
+        for value in (since, until):
+            if value is None:
+                parsed.append(None)
+                continue
+            if not isinstance(value, str) or len(value) > 64:
+                raise PitError("Invalid receipt timestamp")
+            try:
+                timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                raise PitError("Invalid receipt timestamp") from None
+            if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+                raise PitError("Receipt timestamps require a timezone")
+            parsed.append(timestamp)
+        if parsed[0] is not None and parsed[1] is not None and parsed[0] >= parsed[1]:
+            raise PitError("since must precede until")
+
+    def query(self, terms, limit=5, entry_ids=None, since=None, until=None):
+        self.validate_query(terms, limit, entry_ids, since, until)
+        return self.api("rpc/pit_query", "POST", {
+            "p_terms": terms, "p_limit": limit, "p_entry_ids": entry_ids,
+            "p_since": since, "p_until": until})
+
     def read_range(self, identity, start=0, end=1000):
         if not re.fullmatch(r"[a-f0-9]{64}", identity) or not 0 <= start <= end <= 2147483647 or end - start > 20000:
             raise PitError("Invalid range parameters")
